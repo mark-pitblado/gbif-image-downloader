@@ -17,6 +17,12 @@ Install the dependencies using [uv](https://docs.astral.sh/uv/). There are only 
 uv sync
 ``` 
 
+Create the `/output` directory for downloaded images to go in.
+
+```bash
+mkdir output
+```
+
 ## Usage
 
 Run the following from the terminal. The program will ask for the scientific name that you would like to download images for, and the minimum number of images that you would like to request.
