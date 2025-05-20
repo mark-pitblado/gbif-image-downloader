@@ -1,0 +1,11 @@
+[project]
+name = "bulk-image-downloader-gbif"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pygbif>=0.6.5",
+    "requests>=2.32.3",
+    "rich>=14.0.0",
+]
