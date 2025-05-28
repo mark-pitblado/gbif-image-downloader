@@ -7,7 +7,7 @@ from rich.console import Console
 
 from urllib.parse import urlparse
 from os.path import splitext
-from requests.exceptions import ReadTimeout
+from requests.exceptions import ReadTimeout, HTTPError, Timeout, RequestException
 
 
 def get_ext(url):
@@ -23,7 +23,7 @@ def download_image(url="", directory=""):
     """
     try:
         r = requests.get(url, stream=True, timeout=3)
-    except ReadTimeout:
+    except (ReadTimeout, HTTPError, Timeout, ConnectionError, RequestException):
         return None
     # Generate a random UUID for the image, we don't care what the original name was
     filename = uuid.uuid4()
