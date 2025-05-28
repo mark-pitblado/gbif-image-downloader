@@ -21,7 +21,7 @@ def get_ext(url):
     return ext
 
 
-def download_image(url="", directory=""):
+def download_image(filename: str, url="", directory=""):
     """
     Downloads an image by calling the url.
     """
@@ -29,8 +29,7 @@ def download_image(url="", directory=""):
         r = requests.get(url, stream=True, timeout=3)
     except (ReadTimeout, HTTPError, Timeout, ConnectionError, RequestException):
         return None
-    # Generate a random UUID for the image, we don't care what the original name was
-    filename = uuid.uuid4()
+    filename = filename if (filename is not None) else uuid.uuid()
     if r.status_code == 200:
         ext = get_ext(url)
         if ext == "":
@@ -45,7 +44,6 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
     Calls GBIF to get a set of image urls for a given scientific name.
     """
     image_set = set()
-    counter = 0
     console = Console()
     lookup_result = species.name_lookup(scientific_name)
     if lookup_result["count"] == 0:
@@ -57,20 +55,25 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
     sci_name_parsed = lookup_result["results"][0]["species"]
     with console.status("[bold green]Assembling image list..."):
         license_dict = {}
+        offset_counter = 0
         while len(image_set) < request_n_images:
             results = occ.search(
                 mediaType="StillImage",
                 basisOfRecord="PRESERVED_SPECIMEN",
-                scientificName=scientific_name,
+                scientificName=sci_name_parsed,
+                # 10 is an arbitrary number, but strikes a good balance. Too small
+                # and too many requests are made. Too large and the number of images
+                # returned will be much more than the user asked for.
                 limit=300 if request_n_images > 300 else request_n_images + 10,
-                offset=(counter * (request_n_images + 10))
+                offset=(offset_counter * (request_n_images + 10))
                 if request_n_images < 300
-                else (counter * 300),
+                else (offset_counter * 300),
             )
-            counter += 1
+            offset_counter += 1
+            license_sync_counter = 0
             for r in results["results"]:
-                # Log the license that is with the record and create a txt file.
-                license_dict[r["occurrenceID"]] = r["license"]
+                # Log the license that is with the record.
+                license_dict[license_sync_counter] = r["license"]
                 # Crude implementation, checks if the first image listed has the fields
                 # needed, if not, just moves to the next. Some publishers may have metadata
                 # only, and not the image itself.
@@ -78,7 +81,9 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
                     if r["media"][0]["format"] == "image/jpeg":
                         image_set.add(r["media"][0]["identifier"])
                 except KeyError:
+                    license_dict.pop(license_sync_counter, None)
                     continue
+                license_sync_counter += 1
         with open("output/licenses.json", "w") as f:
             json.dump(license_dict, f)
     return image_set

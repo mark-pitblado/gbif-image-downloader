@@ -16,8 +16,13 @@ def main():
         scientific_name=scientific_name, request_n_images=request_n_images
     )
     if len(images) > 0:
+        counter = 0
         for image in track(images, description="Downloading images:"):
-            download_image(url=image)
+            download_image(
+                filename=str(scientific_name.replace(" ", "-") + "_" + str(counter)),
+                url=image,
+            )
+            counter += 1
 
 
 if __name__ == "__main__":
