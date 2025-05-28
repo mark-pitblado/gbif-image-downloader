@@ -3,6 +3,7 @@ from pygbif import occurrences as occ
 import requests
 import shutil
 import uuid
+import json
 from rich.console import Console
 
 from urllib.parse import urlparse
@@ -55,6 +56,8 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
             )
             counter += 1
             for r in results["results"]:
+                # Log the license that is with the record and create a txt file.
+                license_dict[r["occurrenceID"]] = r["license"]
                 # Crude implementation, checks if the first image listed has the fields
                 # needed, if not, just moves to the next. Some publishers may have metadata
                 # only, and not the image itself.
@@ -63,4 +66,6 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
                         image_set.add(r["media"][0]["identifier"])
                 except KeyError:
                     continue
+        with open("output/licenses.json", "w") as f:
+            json.dump(license_dict, f)
     return image_set
