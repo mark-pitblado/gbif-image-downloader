@@ -5,6 +5,7 @@ import requests
 import shutil
 import uuid
 import json
+import sys
 from rich.console import Console
 from rich import print
 
