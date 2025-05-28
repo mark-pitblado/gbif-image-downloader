@@ -1,10 +1,12 @@
 from pygbif import occurrences as occ
+from pygbif import species
 
 import requests
 import shutil
 import uuid
 import json
 from rich.console import Console
+from rich import print
 
 from urllib.parse import urlparse
 from os.path import splitext
@@ -44,7 +46,14 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
     image_set = set()
     counter = 0
     console = Console()
-
+    lookup_result = species.name_lookup(scientific_name)
+    if lookup_result["count"] == 0:
+        print("Scientific name appears to be invalid. Exiting")
+        sys.exit(1)
+    print(
+        f"Match successful. Fetching images for: [bold blue]{lookup_result['results'][0]['species']}"
+    )
+    sci_name_parsed = lookup_result["results"][0]["species"]
     with console.status("[bold green]Assembling image list..."):
         license_dict = {}
         while len(image_set) < request_n_images:

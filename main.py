@@ -15,8 +15,9 @@ def main():
     images = get_images_by_sciname(
         scientific_name=scientific_name, request_n_images=request_n_images
     )
-    for image in track(images, description="Downloading images:"):
-        download_image(url=image)
+    if len(images) > 0:
+        for image in track(images, description="Downloading images:"):
+            download_image(url=image)
 
 
 if __name__ == "__main__":
