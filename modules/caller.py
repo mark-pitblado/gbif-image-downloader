@@ -46,13 +46,16 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
     console = Console()
 
     with console.status("[bold green]Assembling image list..."):
+        license_dict = {}
         while len(image_set) < request_n_images:
             results = occ.search(
                 mediaType="StillImage",
                 basisOfRecord="PRESERVED_SPECIMEN",
                 scientificName=scientific_name,
-                limit=request_n_images,
-                offset=counter,
+                limit=300 if request_n_images > 300 else request_n_images + 10,
+                offset=(counter * (request_n_images + 10))
+                if request_n_images < 300
+                else (counter * 300),
             )
             counter += 1
             for r in results["results"]:
