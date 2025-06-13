@@ -37,8 +37,11 @@ def download_image(filename: str, url="", directory=""):
     filename = filename if (filename is not None) else uuid.uuid()
     if r.status_code == 200:
         ext = get_ext(url)
+        if ext not in (".JPG", ".PNG", ".JPEG", ".TIF", ".TIFF", ""):
+            return None
+        # Assign jpeg extension for those missing an extension
         if ext == "":
-            ext = ".jpg"  # Default to jpg if no extension is listed.
+            ext = ".jpg"
         with open(f"output/{filename}{ext}", "wb") as out_file:
             shutil.copyfileobj(r.raw, out_file)
     del r
