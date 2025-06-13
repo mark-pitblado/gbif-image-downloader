@@ -1,4 +1,5 @@
-from modules.caller import get_images_by_sciname, download_image
+from modules.caller import get_images_by_sciname, download_image, request_download
+from modules.files import read_integers_to_set
 
 from rich.progress import track
 from rich.console import Console
@@ -13,8 +14,9 @@ def main():
         console.input("What is the minimum number of images that you need? ")
     )
     input = console.input("Would you like to enable strict mode? (y/n)")
-    # gbif_username = console.input("What is your GBIF username? ")
-    # gbif_password = console.input("What is your GBIF password? ", password=True)
+    gbif_username = console.input("What is your GBIF username? ")
+    gbif_password = console.input("What is your GBIF password? ", password=True)
+    email = console.input("Which email should the download notification be sent to? ")
     strict_mode = True if input == "y" else False
     images = get_images_by_sciname(
         scientific_name=scientific_name,
@@ -29,6 +31,11 @@ def main():
                 url=image,
             )
             counter += 1
+    # Request a download to get the DOI
+    gbif_ids = read_integers_to_set("output/ids.txt")
+    request_download(
+        gbif_ids, email=email, gbif_username=gbif_username, gbif_password=gbif_password
+    )
 
 
 if __name__ == "__main__":

@@ -114,15 +114,23 @@ def request_download(gbif_ids: set, email="", gbif_username="", gbif_password=""
     """
     data = {
         "creator": gbif_username,
-        "notification_address": email,
-        "description": "A DwCA for the records that were used for image requests",
-        "predicate": {"type": "in", "key": "GBIF_ID", "value": list(gbif_ids)},
+        "sendNotification": True,
+        "notification_address": [email],
+        "format": "DWCA",
+        "description": "Download of requests matching image download.",
+        "predicate": {"type": "in", "key": "GBIF_ID", "values": list(gbif_ids)},
+        "verbatimExtensions": ["http://rs.tdwg.org/ac/terms/Multimedia"],
     }
     try:
-        requests.post(
-            "https://api.gbif.org/occurrence/download/request",
+        r = requests.post(
+            "https://api.gbif.org/v1/occurrence/download/request",
+            headers={"Content-Type": "application/json"},
             auth=(gbif_username, gbif_password),
-            data=data,
+            json=data,
         )
-    except requests.exception.RequestException as e:
+        if r.status_code != 201:
+            return HTTPError(
+                f"GBIF download request failed with status code {r.status_code}. Expected 201."
+            )
+    except requests.exceptions.RequestException as e:
         raise SystemExit(e)
