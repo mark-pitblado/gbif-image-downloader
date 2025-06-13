@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 from os.path import splitext
 from requests.exceptions import ReadTimeout, HTTPError, Timeout, RequestException
 
+from settings import APPROVED_PUBLISHERS
 
 def get_ext(url):
     """Return the filename extension for a url"""
@@ -72,6 +73,9 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
             offset_counter += 1
             license_sync_counter = 0
             for r in results["results"]:
+                if strict_mode:
+                    if r["publishingOrg"] not in APPROVED_PUBLISHERS:
+                        continue
                 # Log the license that is with the record.
                 license_dict[license_sync_counter] = r["license"]
                 # Crude implementation, checks if the first image listed has the fields
