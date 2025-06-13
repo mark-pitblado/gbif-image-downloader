@@ -12,8 +12,14 @@ def main():
     request_n_images = int(
         console.input("What is the minimum number of images that you need? ")
     )
+    input = console.input("Would you like to enable strict mode? (y/n)")
+    # gbif_username = console.input("What is your GBIF username? ")
+    # gbif_password = console.input("What is your GBIF password? ", password=True)
+    strict_mode = True if input == "y" else False
     images = get_images_by_sciname(
-        scientific_name=scientific_name, request_n_images=request_n_images
+        scientific_name=scientific_name,
+        request_n_images=request_n_images,
+        strict_mode=strict_mode,
     )
     if len(images) > 0:
         counter = 0

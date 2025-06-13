@@ -16,6 +16,7 @@ from requests.exceptions import ReadTimeout, HTTPError, Timeout, RequestExceptio
 from settings import APPROVED_PUBLISHERS
 from .checker import is_valid_url
 
+
 def get_ext(url):
     """Return the filename extension for a url"""
     parsed = urlparse(url)
@@ -105,3 +106,23 @@ def get_images_by_sciname(
             for id in gbif_ids:
                 ids.write(f"{id}\n")
     return image_urls
+
+
+def request_download(gbif_ids: set, email="", gbif_username="", gbif_password=""):
+    """
+    Requests a GBIF download for the gbif ids provided.
+    """
+    data = {
+        "creator": gbif_username,
+        "notification_address": email,
+        "description": "A DwCA for the records that were used for image requests",
+        "predicate": {"type": "in", "key": "GBIF_ID", "value": list(gbif_ids)},
+    }
+    try:
+        requests.post(
+            "https://api.gbif.org/occurrence/download/request",
+            auth=(gbif_username, gbif_password),
+            data=data,
+        )
+    except requests.exception.RequestException as e:
+        raise SystemExit(e)
