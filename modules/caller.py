@@ -14,6 +14,7 @@ from os.path import splitext
 from requests.exceptions import ReadTimeout, HTTPError, Timeout, RequestException
 
 from settings import APPROVED_PUBLISHERS
+from .checker import is_valid_url
 
 def get_ext(url):
     """Return the filename extension for a url"""
@@ -27,6 +28,9 @@ def download_image(filename: str, url="", directory=""):
     Downloads an image by calling the url.
     """
     try:
+        # Check for a simple response before downloading the full image
+        if not is_valid_url(url):
+            return None
         r = requests.get(url, stream=True, timeout=3)
     except (ReadTimeout, HTTPError, Timeout, ConnectionError, RequestException):
         return None
