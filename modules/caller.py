@@ -47,30 +47,33 @@ def download_image(filename: str, url="", directory=""):
     del r
 
 
-def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
+def get_images_by_sciname(
+    scientific_name: str, request_n_images=20, strict_mode=False
+) -> set():
     """
-    Calls GBIF to get a set of image urls for a given scientific name.
+    Calls GBIF to get a set of image urls for a given scientific name. Also returns the occurrence ids for each of the images successfully retrieved so that they can be used later to assemble the DOI.
     """
-    image_set = set()
+    image_urls = set()
+    gbif_ids = set()
     console = Console()
     lookup_result = species.name_lookup(scientific_name)
     if lookup_result["count"] == 0:
         print("Scientific name appears to be invalid. Exiting")
         sys.exit(1)
     print(
-        f"Match successful. Fetching images for: [bold blue]{lookup_result['results'][0]['species']}"
+        f"Match successful. Fetching image_urls for: [bold blue]{lookup_result['results'][0]['species']}"
     )
     sci_name_parsed = lookup_result["results"][0]["species"]
     with console.status("[bold green]Assembling image list..."):
         license_dict = {}
         offset_counter = 0
-        while len(image_set) < request_n_images:
+        while len(image_urls) < request_n_images:
             results = occ.search(
                 mediaType="StillImage",
                 basisOfRecord="PRESERVED_SPECIMEN",
                 scientificName=sci_name_parsed,
                 # 10 is an arbitrary number, but strikes a good balance. Too small
-                # and too many requests are made. Too large and the number of images
+                # and too many requests are made. Too large and the number of image_urls
                 # returned will be much more than the user asked for.
                 limit=300 if request_n_images > 300 else request_n_images + 10,
                 offset=(offset_counter * (request_n_images + 10))
@@ -90,11 +93,15 @@ def get_images_by_sciname(scientific_name: str, request_n_images=20) -> set():
                 # only, and not the image itself.
                 try:
                     if r["media"][0]["format"] == "image/jpeg":
-                        image_set.add(r["media"][0]["identifier"])
+                        gbif_ids.add(r["key"])
+                        image_urls.add(r["media"][0]["identifier"])
                 except KeyError:
                     license_dict.pop(license_sync_counter, None)
                     continue
                 license_sync_counter += 1
         with open("output/licenses.json", "w") as f:
             json.dump(license_dict, f)
-    return image_set
+        with open("output/ids.txt", "w") as ids:
+            for id in gbif_ids:
+                ids.write(f"{id}\n")
+    return image_urls
