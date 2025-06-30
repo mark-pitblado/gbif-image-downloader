@@ -21,4 +21,4 @@ def create_http_pie_chart(data: dict):
         return my_format
 
     plt.pie(x=values, labels=labels, autopct=autopct_format(values))
-    plt.savefig("output/http-codes.png")
+    plt.savefig("statistics/http-codes.png")
