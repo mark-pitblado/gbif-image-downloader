@@ -11,5 +11,14 @@ def create_http_pie_chart(data: dict):
     """
     labels = data.keys()
     values = data.values()
-    plt.pie(x=values, labels=labels, autopct="%.0f%%")
+
+    def autopct_format(values):
+        def my_format(pct):
+            total = sum(values)
+            val = int(round(pct * total / 100.0))
+            return "{:.1f}%\n({v:d})".format(pct, v=val)
+
+        return my_format
+
+    plt.pie(x=values, labels=labels, autopct=autopct_format(values))
     plt.show()
