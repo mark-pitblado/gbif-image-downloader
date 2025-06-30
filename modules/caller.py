@@ -95,7 +95,6 @@ def get_images_by_sciname(
                     if r["publishingOrg"] not in os.getenv("APPROVED_PUBLISHERS"):
                         continue
                 # Log the license that is with the record.
-                license_dict[r["key"]] = r["license"]
                 # Crude implementation, checks if the first image listed has the fields
                 # needed, if not, just moves to the next. Some publishers may have metadata
                 # only, and not the image itself.
@@ -104,7 +103,6 @@ def get_images_by_sciname(
                         r["media"][0]["format"] == "image/jpeg"
                         or r["media"][0]["format"] == "image/png"
                     ):
-                        gbif_ids.add(r["key"])
                         image_status_code = download_image(
                             filename=f"{r['key']}",
                             url=r["media"][0]["identifier"],
@@ -116,6 +114,8 @@ def get_images_by_sciname(
                             except KeyError:
                                 statistics[image_status_code] = 0
                             if image_status_code == 200:
+                                gbif_ids.add(r["key"])
+                                license_dict[r["key"]] = r["license"]
                                 success_counter += 1
                 except KeyError:
                     license_dict.pop(r["key"], None)
