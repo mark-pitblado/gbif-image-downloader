@@ -24,7 +24,7 @@ def get_ext(url):
     return ext
 
 
-def download_image(filename: str, url="", directory=""):
+def download_image(filename: str, url="", directory="") -> int:
     """
     Downloads an image by calling the url.
     """
@@ -45,7 +45,7 @@ def download_image(filename: str, url="", directory=""):
             ext = ".jpg"
         with open(f"output/{filename}{ext}", "wb") as out_file:
             shutil.copyfileobj(r.raw, out_file)
-    del r
+    return r.status_code
 
 
 def get_images_by_sciname(
