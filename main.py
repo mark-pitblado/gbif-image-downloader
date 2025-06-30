@@ -1,7 +1,7 @@
 import os
 
 from modules.caller import get_images_by_sciname, download_image, request_download
-from modules.files import read_integers_to_set
+from modules.files import read_integers_to_set, clean_excess_images
 from modules.statistics import create_http_pie_chart
 
 from rich.progress import track
@@ -34,33 +34,15 @@ def main():
         email = console.input(
             "Which email should the download notification be sent to? "
         )
-    if os.getenv("COLLECT_STATISTICS"):
-        statistics = True
-    else:
-        statistics = False
     strict_mode = True if input == "y" else False
-    images = get_images_by_sciname(
+    get_images_by_sciname(
         scientific_name=scientific_name,
         request_n_images=request_n_images,
         strict_mode=strict_mode,
     )
-    if len(images) > 0:
-        counter = 0
-        http_code_tracker = {}
-        for image in track(images, description="Downloading images:"):
-            http_code = download_image(
-                filename=str(scientific_name.replace(" ", "-") + "_" + str(counter)),
-                url=image,
-            )
-            # Log the http code for statistics
-            try:
-                http_code_tracker[http_code] += 1
-            except KeyError:
-                http_code_tracker[http_code] = 1
-            counter += 1
-    if statistics:
-        print(http_code_tracker)
-        create_http_pie_chart(http_code_tracker)
+
+    # Clean excess images
+    clean_excess_images(request_n_images)
 
     # Request a download to get the DOI
     gbif_ids = read_integers_to_set("output/ids.txt")

@@ -6,15 +6,17 @@ import shutil
 import uuid
 import json
 import sys
+import os
 from rich.console import Console
 from rich import print
 
 from urllib.parse import urlparse
 from os.path import splitext
 from requests.exceptions import ReadTimeout, HTTPError, Timeout, RequestException
+from dotenv import load_dotenv
 
-from settings import APPROVED_PUBLISHERS
 from .checker import is_valid_url
+from .statistics import create_http_pie_chart
 
 
 def get_ext(url):
@@ -54,7 +56,7 @@ def get_images_by_sciname(
     """
     Calls GBIF to get a set of image urls for a given scientific name. Also returns the occurrence ids for each of the images successfully retrieved so that they can be used later to assemble the DOI.
     """
-    image_urls = set()
+    load_dotenv()
     gbif_ids = set()
     console = Console()
     lookup_result = species.name_lookup(scientific_name)
@@ -65,47 +67,66 @@ def get_images_by_sciname(
         f"Match successful. Fetching image_urls for: [bold blue]{lookup_result['results'][0]['species']}"
     )
     sci_name_parsed = lookup_result["results"][0]["species"]
-    with console.status("[bold green]Assembling image list..."):
+    if os.getenv("COLLECT_STATISTICS"):
+        collect_statistics = True
+    else:
+        collect_statistics = False
+    with console.status("[bold green]Downloading images: ") as s:
         license_dict = {}
+        statistics = {}
         offset_counter = 0
-        while len(image_urls) < request_n_images:
+        success_counter = 0
+        while success_counter <= request_n_images:
+            s.update(f"{success_counter} images downloaded")
             results = occ.search(
                 mediaType="StillImage",
                 basisOfRecord="PRESERVED_SPECIMEN",
                 scientificName=sci_name_parsed,
-                # 10 is an arbitrary number, but strikes a good balance. Too small
-                # and too many requests are made. Too large and the number of image_urls
-                # returned will be much more than the user asked for.
-                limit=300 if request_n_images > 300 else request_n_images + 10,
-                offset=(offset_counter * (request_n_images + 10))
-                if request_n_images < 300
-                else (offset_counter * 300),
+                limit=20,
+                offset=(offset_counter * 20),
             )
+            if len(results) == 0:
+                raise ValueError(
+                    "There were not enough images that match your criteria available to fulfil the request"
+                )
             offset_counter += 1
-            license_sync_counter = 0
             for r in results["results"]:
                 if strict_mode:
-                    if r["publishingOrg"] not in APPROVED_PUBLISHERS:
+                    if r["publishingOrg"] not in os.getenv("APPROVED_PUBLISHERS"):
                         continue
                 # Log the license that is with the record.
-                license_dict[license_sync_counter] = r["license"]
+                license_dict[r["key"]] = r["license"]
                 # Crude implementation, checks if the first image listed has the fields
                 # needed, if not, just moves to the next. Some publishers may have metadata
                 # only, and not the image itself.
                 try:
-                    if r["media"][0]["format"] == "image/jpeg":
+                    if (
+                        r["media"][0]["format"] == "image/jpeg"
+                        or r["media"][0]["format"] == "image/png"
+                    ):
                         gbif_ids.add(r["key"])
-                        image_urls.add(r["media"][0]["identifier"])
+                        image_status_code = download_image(
+                            filename=f"{r['key']}",
+                            url=r["media"][0]["identifier"],
+                            directory="output",
+                        )
+                        if collect_statistics:
+                            try:
+                                statistics[image_status_code] += 1
+                            except KeyError:
+                                statistics[image_status_code] = 0
+                            if image_status_code == 200:
+                                success_counter += 1
                 except KeyError:
-                    license_dict.pop(license_sync_counter, None)
+                    license_dict.pop(r["key"], None)
                     continue
-                license_sync_counter += 1
         with open("output/licenses.json", "w") as f:
             json.dump(license_dict, f)
         with open("output/ids.txt", "w") as ids:
             for id in gbif_ids:
                 ids.write(f"{id}\n")
-    return image_urls
+    if collect_statistics:
+        create_http_pie_chart(statistics)
 
 
 def request_download(gbif_ids: set, email="", gbif_username="", gbif_password=""):
