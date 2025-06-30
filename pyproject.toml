@@ -5,7 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "dotenv>=0.9.9",
+    "matplotlib>=3.10.3",
     "pygbif>=0.6.5",
+    "pyqt6>=6.9.1",
     "requests>=2.32.3",
     "rich>=14.0.0",
 ]
