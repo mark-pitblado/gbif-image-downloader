@@ -16,7 +16,7 @@ from requests.exceptions import ReadTimeout, HTTPError, Timeout, RequestExceptio
 from dotenv import load_dotenv
 
 from .checker import is_valid_url
-from .statistics import create_http_pie_chart
+from .statistics import create_http_pie_chart, image_license_described
 
 
 def get_ext(url):
@@ -73,7 +73,8 @@ def get_images_by_sciname(
         collect_statistics = False
     with console.status("[bold green]Downloading images: ") as s:
         license_dict = {}
-        statistics = {}
+        http_statistics = {}
+        number_of_explicitly_licensed_images = 0
         offset_counter = 0
         success_counter = 0
         while success_counter <= request_n_images:
@@ -109,14 +110,19 @@ def get_images_by_sciname(
                             directory="output",
                         )
                         if collect_statistics:
+                            # HTTP stats
                             try:
-                                statistics[image_status_code] += 1
+                                http_statistics[image_status_code] += 1
                             except KeyError:
-                                statistics[image_status_code] = 0
-                            if image_status_code == 200:
-                                gbif_ids.add(r["key"])
-                                license_dict[r["key"]] = r["license"]
-                                success_counter += 1
+                                http_statistics[image_status_code] = 0
+                        if image_status_code == 200:
+                            if collect_statistics:
+                                # Only care about explicit licenses for successful requests
+                                if image_license_described(r["media"]):
+                                    number_of_explicitly_licensed_images += 1
+                            gbif_ids.add(r["key"])
+                            license_dict[r["key"]] = r["license"]
+                            success_counter += 1
                 except KeyError:
                     license_dict.pop(r["key"], None)
                     continue
@@ -126,7 +132,11 @@ def get_images_by_sciname(
             for id in gbif_ids:
                 ids.write(f"{id}\n")
     if collect_statistics:
-        create_http_pie_chart(statistics)
+        create_http_pie_chart(http_statistics)
+        with open("statistics/image_licenses.txt", "w") as img_licenses:
+            img_licenses.write(
+                f"{number_of_explicitly_licensed_images} images had an explicit license"
+            )
 
 
 def request_download(gbif_ids: set, email="", gbif_username="", gbif_password=""):

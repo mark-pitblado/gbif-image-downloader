@@ -22,3 +22,23 @@ def create_http_pie_chart(data: dict):
 
     plt.pie(x=values, labels=labels, autopct=autopct_format(values))
     plt.savefig("statistics/http-codes.png")
+
+
+def image_license_described(data: dict) -> bool:
+    """
+    Determines whether an Audiovisual Media Description extension contains one or more of the following terms.
+        1. rights
+        2. UsageTerms
+        3. Credit
+    """
+    try:
+        if data[0]["license"] != "":
+            return True
+        return False
+    except KeyError:
+        try:
+            if data[0]["rights"] != "":
+                return True
+            return False
+        except KeyError:
+            return False
