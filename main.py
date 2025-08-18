@@ -11,6 +11,16 @@ from dotenv import load_dotenv
 def main():
     console = Console()
     load_dotenv()
+    # Check if there is an output directory created. If not, prompt the user to create it. If there is already one present, but it is not empty, warn the user.
+    if not os.path.exists("output"):
+        console.print(
+            "[bold red]The output directory has not been created. Please create a folder called 'output' for the images."
+        )
+        exit(1)
+    elif os.listdir("output"):
+        console.print(
+            "[bold yellow]Warning: The output directory is not empty, you may want to empty it before running the tool again."
+        )
     scientific_name = console.input(
         "Which scientific name would you like to fetch images for? "
     )
