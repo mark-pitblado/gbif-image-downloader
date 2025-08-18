@@ -31,7 +31,7 @@ def main():
     email = (
         os.getenv("GBIF_NOTIFICATION_EMAIL")
         if os.getenv("GBIF_NOTIFICATION_EMAIL")
-        else console.input("What email should the citation email be sent to? ")
+        else console.input("Which email should the citation email be sent to? ")
     )
     strict_mode = True if input == "y" else False
     get_images_by_sciname(
