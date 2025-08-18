@@ -1,4 +1,4 @@
-# Bulk GBIF Image Downloader
+# GBIF Image Downloader
 
 This is a simple tool to download images from the [Global Biodiversity Information Facility (GBIF)](https://gbif.org) by scientific name. Only records that are labeled as Preserved Specimens will be downloaded, Human Observations are not included.
 
