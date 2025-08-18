@@ -64,7 +64,7 @@ def get_images_by_sciname(
         print("Scientific name appears to be invalid. Exiting")
         sys.exit(1)
     print(
-        f"Match successful. Fetching image_urls for: [bold blue]{lookup_result['results'][0]['species']}"
+        f"Scientific name is valid. Fetching images for: [bold blue]{lookup_result['results'][0]['species']}"
     )
     sci_name_parsed = lookup_result["results"][0]["species"]
     if os.getenv("COLLECT_STATISTICS"):
@@ -124,7 +124,6 @@ def get_images_by_sciname(
                             license_dict[r["key"]] = r["license"]
                             success_counter += 1
                 except KeyError:
-                    license_dict.pop(r["key"], None)
                     continue
         with open("output/licenses.json", "w") as f:
             json.dump(license_dict, f)
