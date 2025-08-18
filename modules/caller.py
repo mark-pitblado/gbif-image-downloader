@@ -7,7 +7,7 @@ import uuid
 import json
 import sys
 import os
-from rich.console import Console
+from rich.progress import Progress
 from rich import print
 
 from urllib.parse import urlparse
@@ -56,9 +56,9 @@ def get_images_by_sciname(
     """
     Calls GBIF to get a set of image urls for a given scientific name. Also returns the occurrence ids for each of the images successfully retrieved so that they can be used later to assemble the DOI.
     """
+
     load_dotenv()
     gbif_ids = set()
-    console = Console()
     lookup_result = species.name_lookup(scientific_name)
     if lookup_result["count"] == 0:
         print("Scientific name appears to be invalid. Exiting")
@@ -67,24 +67,23 @@ def get_images_by_sciname(
         f"Scientific name is valid. Fetching images for: [bold blue]{lookup_result['results'][0]['species']}"
     )
     sci_name_parsed = lookup_result["results"][0]["species"]
-    if os.getenv("COLLECT_STATISTICS"):
-        collect_statistics = True
-    else:
-        collect_statistics = False
-    with console.status("[bold green]Downloading images: ") as s:
-        license_dict = {}
-        http_statistics = {}
-        number_of_explicitly_licensed_images = 0
-        offset_counter = 0
-        success_counter = 0
-        while success_counter <= request_n_images:
-            s.update(f"{success_counter} images downloaded")
+    collect_statistics = bool(os.getenv("COLLECT_STATISTICS"))
+    license_dict = {}
+    http_statistics = {}
+    number_of_explicitly_licensed_images = 0
+    req_increment = min(max(50, request_n_images * 2), 300)
+    offset_counter = 0
+    success_counter = 0
+
+    with Progress() as progress:
+        task = progress.add_task("[green]Downloading images: ", total=request_n_images)
+        while success_counter < request_n_images:
             results = occ.search(
                 mediaType="StillImage",
                 basisOfRecord="PRESERVED_SPECIMEN",
                 scientificName=sci_name_parsed,
-                limit=20,
-                offset=(offset_counter * 20),
+                limit=req_increment,
+                offset=(offset_counter * req_increment),
             )
             if len(results) == 0:
                 raise ValueError(
@@ -95,10 +94,6 @@ def get_images_by_sciname(
                 if strict_mode:
                     if r["publishingOrg"] not in os.getenv("APPROVED_PUBLISHERS"):
                         continue
-                # Log the license that is with the record.
-                # Crude implementation, checks if the first image listed has the fields
-                # needed, if not, just moves to the next. Some publishers may have metadata
-                # only, and not the image itself.
                 try:
                     if (
                         r["media"][0]["format"] == "image/jpeg"
@@ -110,26 +105,28 @@ def get_images_by_sciname(
                             directory="output",
                         )
                         if collect_statistics:
-                            # HTTP stats
                             try:
                                 http_statistics[image_status_code] += 1
                             except KeyError:
                                 http_statistics[image_status_code] = 0
                         if image_status_code == 200:
                             if collect_statistics:
-                                # Only care about explicit licenses for successful requests
                                 if image_license_described(r["media"]):
                                     number_of_explicitly_licensed_images += 1
                             gbif_ids.add(r["key"])
                             license_dict[r["key"]] = r["license"]
                             success_counter += 1
+                            progress.update(task, advance=1)
+                            if success_counter >= request_n_images:
+                                break
                 except KeyError:
                     continue
-        with open("output/licenses.json", "w") as f:
-            json.dump(license_dict, f)
-        with open("output/ids.txt", "w") as ids:
-            for id in gbif_ids:
-                ids.write(f"{id}\n")
+
+    with open("output/licenses.json", "w") as f:
+        json.dump(license_dict, f)
+    with open("output/ids.txt", "w") as ids:
+        for id in gbif_ids:
+            ids.write(f"{id}\n")
     if collect_statistics:
         create_http_pie_chart(http_statistics)
         with open("statistics/image_licenses.txt", "w") as img_licenses:
