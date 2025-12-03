@@ -1,22 +1,29 @@
-from pygbif import occurrences as occ
-from pygbif import species
+import json
+import os
+import shutil
+import sys
+import tomllib
+import uuid
+from os.path import splitext
+from urllib.parse import urlparse
 
 import requests
-import shutil
-import uuid
-import json
-import sys
-import os
-from rich.progress import Progress
-from rich import print
-
-from urllib.parse import urlparse
-from os.path import splitext
-from requests.exceptions import ReadTimeout, HTTPError, Timeout, RequestException
 from dotenv import load_dotenv
+from pygbif import occurrences as occ
+from pygbif import species
+from requests.exceptions import HTTPError, ReadTimeout, RequestException, Timeout
+from rich import print
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress
+from rich.text import Text
+from rich.traceback import install
 
 from .checker import is_valid_url
 from .statistics import create_http_pie_chart, image_license_described
+
+install(show_locals=False)
+c = Console()
 
 
 def get_ext(url):
@@ -24,6 +31,15 @@ def get_ext(url):
     parsed = urlparse(url)
     root, ext = splitext(parsed.path)
     return ext
+
+
+def load_search_params(path="search_parameters.toml"):
+    try:
+        with open(path, "rb") as f:
+            return tomllib.load(f)  # Returns a dict; may be empty
+    except FileNotFoundError:
+        print("Search parameter file not found")
+        return {}
 
 
 def download_image(filename: str, url="", directory="") -> int:
@@ -75,20 +91,34 @@ def get_images_by_sciname(
     offset_counter = 0
     success_counter = 0
 
+    search_cfg = load_search_params()
+
     with Progress() as progress:
         task = progress.add_task("[green]Downloading images: ", total=request_n_images)
         while success_counter < request_n_images:
+            # Base arguments are always present
+            base_args = {
+                "scientificName": sci_name_parsed,
+                "mediaType": "StillImage",
+                "limit": req_increment,
+                "offset": offset_counter * req_increment,
+            }
+
+            if search_cfg:  # True when dict has at least one key
+                api_kwargs = {**base_args, **search_cfg}
+            else:
+                api_kwargs = base_args
             results = occ.search(
-                mediaType="StillImage",
-                basisOfRecord="PRESERVED_SPECIMEN",
-                scientificName=sci_name_parsed,
-                limit=req_increment,
-                offset=(offset_counter * req_increment),
+                **api_kwargs,
             )
-            if len(results) == 0:
-                raise ValueError(
-                    "There were not enough images that match your criteria available to fulfil the request"
+            if len(results["results"]) == 0:
+                progress.stop()
+                msg = Text(
+                    "Unfortunately, there were not enough images to meet your request. Stopping and providing all images found.",
+                    style="bold yellow",
                 )
+                c.print(Panel(msg, border_style="yellow", expand=False))
+                break
             offset_counter += 1
             for r in results["results"]:
                 if strict_mode:

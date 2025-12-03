@@ -12,3 +12,4 @@ wheels/
 
 output/
 statistics/
+search_parameters.toml

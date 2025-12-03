@@ -1,5 +1,5 @@
-import os
 import glob
+import os
 
 
 def read_integers_to_set(filename):
