@@ -27,6 +27,8 @@ mkdir output
 
 All configuration is optional, as you will be prompted for the values the program needs when run. However, if you are going to run the tool repeatedly, it will save you time to configure the values.
 
+### System and account variables
+
 Values are configured via an `.env` file, placed in the root of the directory. An example is provided below. If any value has spaces, it will need to be enclosed in quotations. If you do not wish to use a value, you can exclude it entirely from the file (in other words, none are required).
 
 ```env
@@ -44,6 +46,20 @@ APPROVED_PUBLISHERS=[]
 | GBIF_NOTIFICATION_EMAIL | When you finish running the tool, GBIF will send an email to this address with a DOI for the records of the images that you used. |
 | COLLECT_STATISTICS | Most users will not want to enable this. This is intended for researchers who wish to see the percentage of valid links and license information.
 | APPROVED_PUBLISHERS | If you wish to limit requests to approved publishers, put the publishers UUID in this list. |
+
+### Search parameters
+
+> [!NOTE]  
+> This functionality is completely optional. If you do not create this file, or have it blank, the program will still run fine.
+
+Search parameters can be easily configured through a `search_parameters.toml` file, in the root of the repository (same level as the `main.py` file is run). Within the `search_parameters.toml` define the API parameters that you would like to use to refine your search. For example, to filter for preserved specimens collected between 2000 and 2025:
+
+```toml
+year = [2000, 2025]
+basisOfRecord=PreservedSpecimen
+```
+
+For a full list of parameters available, please consult the [GBIF API documentation](https://techdocs.gbif.org/en/openapi/v1/occurrence#/Searching%20occurrences/searchOccurrence). This program has been tested with some but not all parameters, and we do not make guarantees to provide support for every parameter available.
 
 ## Usage
 
