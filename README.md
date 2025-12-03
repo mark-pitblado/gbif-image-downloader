@@ -56,7 +56,7 @@ Search parameters can be easily configured through a `search_parameters.toml` fi
 
 ```toml
 year = [2000, 2025]
-basisOfRecord=PreservedSpecimen
+basisOfRecord="PreservedSpecimen"
 ```
 
 For a full list of parameters available, please consult the [GBIF API documentation](https://techdocs.gbif.org/en/openapi/v1/occurrence#/Searching%20occurrences/searchOccurrence). This program has been tested with some but not all parameters, and we do not make guarantees to provide support for every parameter available.
