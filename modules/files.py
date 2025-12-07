@@ -1,5 +1,56 @@
 import glob
 import os
+import sys
+from pathlib import Path
+from rich.console import Console
+
+console = Console()
+
+
+def get_valid_prefix():
+    while True:
+        prefix = console.input("Enter a prefix for the output directory: ").strip()
+        if not prefix:
+            console.print("[red]Prefix cannot be empty.[/red]")
+            continue
+        # Disallow characters that are invalid for folder names on most OSes
+        if any(c in r'<>:"/\|?*' for c in prefix):
+            console.print("[red]Prefix contains illegal characters.[/red]")
+            continue
+        return prefix
+
+
+def confirm_overwrite(path: Path) -> bool:
+    answer = (
+        console.input(f"The directory '{path}' already exists. Overwrite? (y/N): ")
+        .strip()
+        .lower()
+    )
+    return answer == "y"
+
+
+def create_output_dir():
+    prefix = get_valid_prefix()
+    out_path = Path(f"{prefix}-output")
+
+    if out_path.exists():
+        if not confirm_overwrite(out_path):
+            console.print("[yellow]Operation cancelled.[/yellow]")
+            sys.exit(0)
+        # Remove existing contents safely
+        for child in out_path.iterdir():
+            if child.is_file():
+                child.unlink()
+            else:
+                # Recursively delete sub‑directories
+                import shutil
+
+                shutil.rmtree(child)
+    else:
+        out_path.mkdir(parents=True)
+
+    console.print(f"[green]Output directory ready:[/green] {out_path}")
+    return str(out_path)
 
 
 def read_integers_to_set(filename):
