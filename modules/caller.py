@@ -42,7 +42,7 @@ def load_search_params(path="search_parameters.toml"):
         return {}
 
 
-def download_image(filename: str, url="", directory="") -> int:
+def download_image(filename: str, url="", output_dir="output") -> int:
     """
     Downloads an image by calling the url.
     """
@@ -61,13 +61,13 @@ def download_image(filename: str, url="", directory="") -> int:
         # Assign jpeg extension for those missing an extension
         if ext == "":
             ext = ".jpg"
-        with open(f"output/{filename}{ext}", "wb") as out_file:
+        with open(f"{output_dir}/{filename}{ext}", "wb") as out_file:
             shutil.copyfileobj(r.raw, out_file)
     return r.status_code
 
 
 def get_images_by_sciname(
-    scientific_name: str, request_n_images=20, strict_mode=False
+    scientific_name: str, request_n_images=20, strict_mode=False, output_dir="output"
 ) -> set():
     """
     Calls GBIF to get a set of image urls for a given scientific name. Also returns the occurrence ids for each of the images successfully retrieved so that they can be used later to assemble the DOI.
@@ -75,14 +75,20 @@ def get_images_by_sciname(
 
     load_dotenv()
     gbif_ids = set()
-    lookup_result = species.name_lookup(scientific_name)
-    if lookup_result["count"] == 0:
-        print("Scientific name appears to be invalid. Exiting")
+    try:
+        lookup_result = species.name_lookup(scientific_name)
+        sci_name_parsed = lookup_result["results"][0]["species"]
+    except (KeyError, IndexError, TypeError):
+        invalid_species_msg = Text(
+            "Scientific name lookup failed.\nEither an invalid scientific name has been provided, or no match was made with the gbif backbone.",
+            style="bold red",
+        )
+        c.print(Panel(invalid_species_msg, border_style="red", expand=False))
         sys.exit(1)
-    print(
-        f"Scientific name is valid. Fetching images for: [bold blue]{lookup_result['results'][0]['species']}"
-    )
-    sci_name_parsed = lookup_result["results"][0]["species"]
+    if not sci_name_parsed:
+        sys.stderr.write("Scientific name appears to be invalid. Exiting.\n")
+        sys.exit(1)
+    print(f"Scientific name is valid. Fetching images for {sci_name_parsed}")
     collect_statistics = bool(os.getenv("COLLECT_STATISTICS"))
     license_dict = {}
     http_statistics = {}
@@ -132,7 +138,7 @@ def get_images_by_sciname(
                         image_status_code = download_image(
                             filename=f"{r['key']}",
                             url=r["media"][0]["identifier"],
-                            directory="output",
+                            output_dir=output_dir,
                         )
                         if collect_statistics:
                             try:
@@ -152,9 +158,9 @@ def get_images_by_sciname(
                 except KeyError:
                     continue
 
-    with open("output/licenses.json", "w") as f:
+    with open(f"{output_dir}/licenses.json", "w") as f:
         json.dump(license_dict, f)
-    with open("output/ids.txt", "w") as ids:
+    with open(f"{output_dir}/ids.txt", "w") as ids:
         for id in gbif_ids:
             ids.write(f"{id}\n")
     if collect_statistics:

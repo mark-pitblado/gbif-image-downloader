@@ -17,12 +17,6 @@ Install the dependencies using [uv](https://docs.astral.sh/uv/). There are only 
 uv sync
 ``` 
 
-Create the `/output` directory for downloaded images to go in.
-
-```bash
-mkdir output
-```
-
 ## Configuration
 
 All configuration is optional, as you will be prompted for the values the program needs when run. However, if you are going to run the tool repeatedly, it will save you time to configure the values.
