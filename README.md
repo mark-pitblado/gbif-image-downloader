@@ -53,7 +53,7 @@ year = [2000, 2025]
 basisOfRecord="PreservedSpecimen"
 ```
 
-For a full list of parameters available, please consult the [GBIF API documentation](https://techdocs.gbif.org/en/openapi/v1/occurrence#/Searching%20occurrences/searchOccurrence). This program has been tested with some but not all parameters, and we do not make guarantees to provide support for every parameter available.
+For a full list of parameters available, please consult the [GBIF API documentation](https://techdocs.gbif.org/en/openapi/v1/occurrence#/Searching%20occurrences/searchOccurrence). This program has been tested with some but not all parameters, and we do not make guarantees to provide support for every parameter available. However, if you do find a particular term that does not work, please open an issue and I will be happy to look into it!
 
 ## Usage
 
